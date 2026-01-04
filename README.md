@@ -10,7 +10,7 @@ Accurate medical image segmentation in practice requires not only pixel-level de
 - **Training:** use image–mask–attribute triplets to learn a lesion embedding aligned with **slot-wise attribute prototypes**.
 - **Inference:** predict a coarse mask first, use it as a pseudo mask to compute a lesion embedding, retrieve **soft attribute priors**, and refine the final segmentation—**without any user-provided prompts**.
 
-- ## Method
+## Method
 
 ### 1) Mask-guided Multi-Scale ROI Pooling (Lesion-Centric Embedding)
 ReCAP-Seg constructs a **lesion-centric embedding** by pooling multi-scale encoder features **inside the lesion region** (mask-weighted average pooling), then fusing multi-scale ROI vectors via **concatenation + projection**.  
