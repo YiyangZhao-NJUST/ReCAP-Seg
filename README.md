@@ -36,6 +36,35 @@ The two outputs are fused at the logit level using a **learnable fusion weight**
 3. Lesion embedding retrieves **slot-wise attribute priors** from the prototype library  
 4. Attribute-guided decoder refines segmentation → **final mask**
 
+## Prompt Template Design for Attribute Generation
+
+To build structured textual attributes for each training sample, we use **ChatGPT-4o** with vision capabilities as an automatic attribute annotator.
+
+**Workflow**
+1. We send the **raw image** together with its corresponding **segmentation mask** to ChatGPT-4o.  
+2. We use a **structured prompt** to define the model role and enforce a standardized output format.  
+
+The mask provides an explicit **region-of-interest (ROI)** cue that localizes the target lesion and reduces ambiguity. To ensure that the generated attributes are **clinically relevant, consistent, and reproducible**, we design a prompt template with explicit constraints:
+
+- **Role Definition:** instruct the model to act as an experienced clinical expert and respond in a report-like style with medically appropriate terminology.  
+- **Instruction:** require the model to describe the lesion strictly based on the provided image–mask pair and follow a fixed attribute schema.  
+- **Output Requirement:** constrain the response to a predefined set of fields; if an attribute cannot be reliably confirmed, output `not detected` to avoid speculation.
+
+We intentionally format outputs as **concise attribute lists** so that the resulting text fits within the input-length constraints of the **CLIP text encoder**, enabling subsequent vision–language alignment. Although we illustrate the template with a brain MRI glioma example, it can be readily adapted to other modalities and tasks by redefining the task-specific attribute set.
+
+**Prompt (MRI Example)**
+
+- **Role Definition:** Please act as an experienced radiology expert with many years of clinical practice, and respond in the style of a clinical report.  
+- **Instruction:** Based on the provided brain MRI image and its corresponding mask, provide a comprehensive description of the glioma, strictly adhering to the following six aspects and giving only accurate and concise answers:  
+  1) Number of lesions  
+  2) Lesion location  
+  3) Lesion shape  
+  4) Boundary characteristics  
+  5) Relationship with surrounding tissue (e.g., infiltration/edema/mass effect)  
+  6) Internal features (e.g., necrosis/cystic change/calcification/hemorrhage)  
+- **Output Requirement:** Report only features visible on the image; if not observed, mark as `not detected`. Do not include unrelated speculation or assumptions. Use standardized, concise, and medically appropriate terminology. Restrict your response strictly to the six aspects listed above.
+
+---
 
 ### Installation
 ```bash
