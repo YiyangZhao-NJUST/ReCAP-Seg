@@ -50,7 +50,7 @@ The mask provides an explicit **region-of-interest (ROI)** cue that localizes th
 - **Instruction:** require the model to describe the lesion strictly based on the provided image–mask pair and follow a fixed attribute schema.  
 - **Output Requirement:** constrain the response to a predefined set of fields; if an attribute cannot be reliably confirmed, output `not detected` to avoid speculation.
 
-We intentionally format outputs as **concise attribute lists** so that the resulting text fits within the input-length constraints of the **CLIP text encoder**, enabling subsequent vision–language alignment. Although we illustrate the template with a brain MRI glioma example, it can be readily adapted to other modalities and tasks by redefining the task-specific attribute set.
+We intentionally format outputs as **concise attribute lists** so that the resulting text fits within the input-length constraints of the **text encoder**, enabling subsequent vision–language alignment. Although we illustrate the template with a brain MRI glioma example, it can be readily adapted to other modalities and tasks by redefining the task-specific attribute set.
 
 **Prompt (MRI Example)**
 
