@@ -46,3 +46,45 @@ conda activate recapseg
 # pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
 
 pip install -r requirements.txt
+```
+## Data Preparation
+
+ReCAP-Seg evaluates on:
+
+- Polyp: Kvasir, CVC-ClinicDB, CVC-ColonDB, CVC-300, ETIS-LaribPolypDB
+
+- Ultrasound: TN3K, TG3K
+
+- MRI: BrainMRI (FLAIR sequence)
+
+- CT: MosMedData+
+
+The training set uses (image, mask, attribute) triplets.
+The procedure for obtaining structured attribute labels is provided in this repository (see the attribute annotation utilities/scripts).
+
+Recommended folder convention (example):
+```
+data/
+  polyp/
+    images/  masks/  attributes.json
+  tn3k/
+    images/  masks/
+  brainmri/
+    images/  masks/
+  mosmed/
+    images/  masks/
+```
+Training
+```
+python train.py --dataset polyp --config configs/polyp.yaml
+```
+Inference (Prompt-Free)
+```
+python infer.py --input path/to/image_or_folder --output outputs/
+```
+
+Outputs typically include:
+
+- predicted segmentation mask
+
+- (optional) slot-wise attribute probabilities / predicted attributes for interpretability
