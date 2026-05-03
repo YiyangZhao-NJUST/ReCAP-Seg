@@ -14,17 +14,6 @@ ReCAP-Seg converts structured clinical attribute annotations into retrievable se
 
 ---
 
-## Highlights
-
-* **Prompt-free inference:** only the input image is required at test time.
-* **Retrievable clinical attribute priors:** structured lesion attributes are encoded as slot-wise prototypes and retrieved automatically from image-derived lesion embeddings.
-* **Training-only attribute supervision:** structured attributes are used to regularize representation learning and prototype-space alignment during training, but are not required during inference.
-* **Modality-adapted schemas:** the framework is shared across tasks, while the semantic attribute schema is specialized for each modality.
-* **Coarse-to-fine refinement:** a plain branch predicts a coarse mask, and a retrieval-conditioned refinement decoder injects retrieved priors for final prediction.
-* **Reproducible attribute construction:** prompt templates, deterministic parsing rules, and quality-control scripts are provided to support reproducibility.
-
----
-
 ## Overview
 
 Medical image segmentation requires accurate pixel-level delineation. In clinical workflows, lesion description also involves structured morphological and appearance cues, such as shape, boundary, texture, echogenicity, edema, opacity pattern, or lesion-tissue interface. Existing vision-language segmentation methods often rely on explicit textual prompts at inference, which is inconvenient for routine deployment.
@@ -67,58 +56,6 @@ Public segmentation datasets usually provide images and masks but do not include
 ### Important clarification
 
 ChatGPT-4o is used only during offline preprocessing. It is **not** used during model training, inference, or deployment. After attributes are constructed, ReCAP-Seg is trained and evaluated as an image-only segmentation model at inference time.
-
----
-
-## Task-/Modality-specific Attribute Schemas
-
-The framework is shared across modalities, but the attribute schema is modality-adapted. In the current study, we instantiate seven structured slots for each modality for implementation consistency; only the semantic contents of the slots are task-specific.
-
-| Task / Modality             | Attribute Schema                                                                                                                       | Clinical Rationale                                                                                                              |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Polyp / Colonoscopy         | Multiplicity; Attachment Form; Shape; Surface Texture; Boundary; Base Stalk; Mucosal Activity                                          | Captures endoscopic morphology, lesion-mucosa interface, and local mucosal response used in descriptive assessment of polyps.   |
-| Brain Tumor / MRI           | Lesion Distribution; Shape; Margin Definition; Internal Heterogeneity; Peritumoral Interface; Mass Effect / Edema; Intensity Pattern   | Reflects tumor morphology, boundary clarity, intralesional heterogeneity, and surrounding tissue response in MRI.               |
-| Thyroid Nodule / Ultrasound | Lesion Localization; Shape / Orientation; Margin; Echogenicity; Internal Composition; Calcification; Posterior Acoustic Feature / Halo | Captures standard ultrasound descriptors, including echogenicity, composition, margin, and acoustic signs.                      |
-| Lung Infection / CT         | Distribution / Laterality; Extent; Shape; Margin; Internal Opacity Pattern; Pleural Relation; Associated Signs                         | Describes infection burden and CT appearance, including distribution, opacity pattern, boundary property, and associated signs. |
-
----
-
-## Repository Structure
-
-A recommended repository layout is shown below. The exact file names may be adjusted according to the released implementation.
-
-```text
-ReCAP-Seg/
-├── configs/
-│   ├── polyp.yaml
-│   ├── brainmri.yaml
-│   ├── tn3k.yaml
-│   └── mosmed.yaml
-├── data/
-│   ├── polyp/
-│   ├── brainmri/
-│   ├── thyroid/
-│   └── mosmed/
-├── datasets/
-│   └── dataset loaders
-├── models/
-│   ├── msa.py
-│   ├── capb.py
-│   ├── rrd.py
-│   └── recapseg.py
-├── prompts/
-│   ├── attribute_prompt_templates/
-│   └── baseline_prompt_templates/
-├── tools/
-│   ├── parse_attributes.py
-│   ├── qc_attributes.py
-│   └── convert_prompts_for_baselines.py
-├── train.py
-├── infer.py
-├── eval.py
-├── requirements.txt
-└── README.md
-```
 
 ---
 
@@ -216,20 +153,6 @@ A typical `attributes.json` file can be organized as:
 }
 ```
 
-The concrete field names should match the modality-specific schema and the parser used in `tools/parse_attributes.py`.
-
-### Preprocessing
-
-Unless otherwise specified, images are resized to `256 x 256` to maintain a controlled cross-modal evaluation setting.
-
-```bash
-python tools/preprocess.py \
-  --dataset polyp \
-  --data_root data/polyp \
-  --save_root data/processed/polyp \
-  --image_size 256
-```
-
 ---
 
 ## Training
@@ -243,68 +166,3 @@ python train.py \
   --save_dir checkpoints/recapseg_polyp
 ```
 
-Example: train on BrainMRI.
-
-```bash
-python train.py \
-  --config configs/brainmri.yaml \
-  --data_root data/processed/brainmri \
-  --save_dir checkpoints/recapseg_brainmri
-```
-
-Example: train on TN3K.
-
-```bash
-python train.py \
-  --config configs/tn3k.yaml \
-  --data_root data/processed/tn3k \
-  --save_dir checkpoints/recapseg_tn3k
-```
-
----
-
-## Inference
-
-Inference uses only images.
-
-```bash
-python infer.py \
-  --config configs/polyp.yaml \
-  --checkpoint checkpoints/recapseg_polyp/best.pth \
-  --input data/processed/polyp/test/Kvasir/images \
-  --output outputs/polyp/Kvasir
-```
-
-The output folder may contain:
-
-```text
-outputs/
-├── masks/                  # final segmentation masks
-├── coarse_masks/           # plain-branch coarse masks, optional
-├── refined_masks/          # guided-branch masks, optional
-└── attributes.json          # slot-wise predicted attribute probabilities, optional
-```
-
-The optional attribute predictions are induced by image-prototype similarity and are provided for structured semantic inspection. They are not required as test-time inputs.
-
----
-
-## Evaluation
-
-```bash
-python eval.py \
-  --pred outputs/polyp/Kvasir/masks \
-  --gt data/processed/polyp/test/Kvasir/masks \
-  --metrics dice miou
-```
-
-For cross-dataset polyp evaluation:
-
-```bash
-for dataset in Kvasir CVC-ClinicDB CVC-ColonDB CVC-300 ETIS; do
-  python eval.py \
-    --pred outputs/polyp/${dataset}/masks \
-    --gt data/processed/polyp/test/${dataset}/masks \
-    --metrics dice miou
-done
-```
