@@ -1,0 +1,255 @@
+# ============================================================
+# ReCAP-Seg configuration for polyp segmentation
+# ============================================================
+
+SEED: 42
+DEVICE: cuda
+NUM_WORKERS: 8
+PIN_MEMORY: true
+
+
+# ============================================================
+# Dataset settings
+# ============================================================
+DATA:
+  # Training images and masks
+  train_image_root: data/polyp/TrainDataset/images
+  train_mask_root: data/polyp/TrainDataset/masks
+
+  # Validation images and masks
+  # Users may replace CVC-300 with other test sets, e.g.,
+  # CVC-ClinicDB, Kvasir, CVC-ColonDB, ETIS, or CVC-300.
+  val_image_root: data/polyp/TestDataset/CVC-300/images
+  val_mask_root: data/polyp/TestDataset/CVC-300/masks
+
+  # Structured attribute annotation files
+  train_label_file: data/polyp/annotations/polyp_train.json
+  val_label_file: data/polyp/annotations/polyp_val.json
+
+  image_size: [384, 384]
+
+  augmentation:
+    horizontal_flip: 0.5
+    vertical_flip: 0.5
+    random_rotate: 0.5
+
+    color_jitter:
+      brightness: 0.2
+      contrast: 0.2
+      saturation: 0.2
+      hue: 0.1
+
+    gaussian_blur: 0.3
+    gaussian_noise: 0.2
+
+
+# ============================================================
+# Model settings
+# ============================================================
+MODEL:
+  name: ReCAPSeg
+
+  encoder:
+    name: convnextv2_base
+    pretrained: true
+    frozen_stages: 0
+    unfreeze_at_epoch: 0
+
+  embed_dim: 512
+
+  decoder:
+    num_heads: 8
+    fusion_type: learnable
+
+  prototype:
+    use_text_init: true
+    text_encoder: all-MiniLM-L6-v2
+    temperature: 0.1
+    learnable_temperature: true
+
+  training_strategy:
+    # Train the segmentation branch only during the first several epochs.
+    pure_seg_epochs: 10
+
+    # Gradually introduce the attribute-alignment objective.
+    gradual_align: true
+
+
+# ============================================================
+# Training settings
+# ============================================================
+TRAIN:
+  epochs: 200
+  batch_size: 20
+  accumulation_steps: 1
+
+  optimizer: adamw
+  base_lr: 3.0e-4
+  weight_decay: 0.01
+
+  scheduler: cosine
+  warmup_epochs: 5
+  min_lr: 1.0e-6
+
+  lr_multiplier:
+    encoder: 0.1
+    prototype: 2.0
+    decoder: 1.0
+
+  loss_weights:
+    seg: 1.0
+    align: 0.5
+    guided: 0.3
+    boundary: 0.1
+
+  dynamic_weights:
+    align:
+      - [0, 0.5]
+      - [30, 0.8]
+      - [60, 1.0]
+
+    guided:
+      - [0, 0.3]
+      - [30, 0.5]
+      - [60, 0.8]
+      - [120, 1.0]
+
+  grad_clip: 1.0
+  use_amp: true
+
+  early_stopping:
+    patience: 100
+    min_delta: 0.001
+    monitor: val_dice
+
+
+# ============================================================
+# Validation settings
+# ============================================================
+VAL:
+  batch_size: 8
+  interval: 1
+
+  two_stage:
+    enabled: true
+    threshold: 0.5
+
+  tta:
+    enabled: false
+    transforms:
+      - horizontal_flip
+      - vertical_flip
+
+
+# ============================================================
+# Attribute schema
+# ============================================================
+# This schema is designed for the polyp segmentation task.
+# The structured attributes are used only as training-time
+# auxiliary supervision and are not required during inference.
+ATTRIBUTES:
+  slots:
+    multiplicity:
+      values:
+        - single
+        - multiple
+      weight: 0.8
+
+    attachment_form:
+      values:
+        - sessile_flat
+        - pedunculated
+        - unknown
+      weight: 1.2
+
+    shape:
+      values:
+        - round
+        - oval
+        - lobulated
+        - irregular
+        - flat_low
+        - protuberant
+        - dome-shaped
+        - elongated
+        - nodular
+        - columnar
+        - hillock_like
+        - annular_depression
+        - unknown
+      weight: 1.5
+
+    surface_texture:
+      values:
+        - smooth
+        - rough
+        - granular_nodular
+        - lobulated_surface
+        - erosion_ulcer
+        - unknown
+      weight: 1.5
+
+    boundary:
+      values:
+        - sharp
+        - irregular_margin
+        - unknown
+      weight: 1.2
+
+    base_stalk:
+      values:
+        - flat_base_broad
+        - slender_stalk
+        - wide_stalk
+        - short_stalk
+        - narrow-based
+        - unknown
+      weight: 1.0
+
+    mucosal_activity:
+      values:
+        - normal
+        - congestion_erythema
+        - hemorrhagic
+        - mucus_secretion
+        - unknown
+      weight: 1.0
+
+
+# ============================================================
+# Logging and checkpoint settings
+# ============================================================
+LOG:
+  log_dir: outputs/logs/recapseg_polyp
+  save_dir: outputs/checkpoints/recapseg_polyp
+
+  tensorboard: true
+
+  log_interval: 10
+  save_interval: 10
+
+  save_best: true
+  best_metric: val_dice
+
+  visualize:
+    enabled: true
+    num_samples: 4
+    interval: 5
+
+
+# ============================================================
+# Inference settings
+# ============================================================
+INFERENCE:
+  batch_size: 1
+  two_stage: true
+  threshold: 0.5
+
+  tta:
+    enabled: true
+    transforms:
+      - horizontal_flip
+      - vertical_flip
+      - rotate_90
+      - rotate_180
+      - rotate_270
