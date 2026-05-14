@@ -57,6 +57,35 @@ Public segmentation datasets usually provide images and masks but do not include
 
 ChatGPT-4o is used only during offline preprocessing. It is **not** used during model training, inference, or deployment. After attributes are constructed, ReCAP-Seg is trained and evaluated as an image-only segmentation model at inference time.
 
+## Modality-specific Attribute Schemas
+
+ReCAP-Seg does not use a universal polyp-specific attribute taxonomy across all medical imaging modalities. The overall retrieval framework is shared across tasks, while the concrete semantic slots and category vocabularies are instantiated separately for each target modality.
+
+In this work, we define seven clinically meaningful semantic slots for each modality to maintain implementation consistency. However, only the slot number is kept consistent; the semantic contents are modality-specific. For example, `base_stalk` and `mucosal_activity` are used only for colonoscopy polyp segmentation, whereas `echogenicity` and `posterior_acoustic_feature / halo_sign` are specific to thyroid ultrasound. Non-polyp tasks do not inherit polyp-specific attributes as empty or inactive placeholders.
+
+| Task / Modality | Attribute Schema | Clinical Rationale |
+|---|---|---|
+| Polyp / Colonoscopy | Multiplicity; Attachment Form; Shape; Surface Texture; Boundary; Base Stalk; Mucosal Activity | Captures endoscopic morphology, lesion-mucosa interface, and local mucosal response that are routinely used in descriptive assessment of polyps. |
+| Brain Tumor / MRI | Lesion Distribution; Shape; Margin Definition; Internal Heterogeneity; Peritumoral Interface; Mass Effect / Edema; Intensity Pattern | Reflects lesion morphology, tumor boundary clarity, intralesional heterogeneity, and surrounding tissue response that are clinically meaningful in MRI-based tumor characterization. |
+| Thyroid Nodule / Ultrasound | Lesion Localization; Shape / Orientation; Margin; Echogenicity; Internal Composition; Calcification; Posterior Acoustic Feature / Halo Sign | Captures standard ultrasound descriptors for thyroid nodules, including echogenic appearance, composition, shape/orientation, margin, and associated acoustic or halo signs. |
+| Lung Infection / CT | Distribution / Laterality; Extent; Shape; Margin; Internal Opacity Pattern; Pleural Relation; Associated Signs | Describes infection burden and appearance in CT, including lesion distribution, opacity pattern, boundary property, and associated radiological signs. |
+
+For each task, the Clinical Attribute-induced Prototype Bank (CAPB) is instantiated using the corresponding task-specific schema. Therefore, prototypes are learned only within the active schema of the current task and are not shared across modalities at the attribute-category level.
+
+---
+
+## Prompt-dependent Baseline Construction
+
+ReCAP-Seg performs image-only inference and does not require user-provided text prompts, attribute labels, bounding boxes, or point prompts at test time. However, several compared vision-language baselines are prompt-dependent and require textual inputs during inference. To ensure reproducibility and avoid manual prompt tuning, we automatically construct one prompt per sample for each prompt-dependent baseline.
+
+Specifically, the structured attribute annotations generated during offline preprocessing are converted into method-specific textual prompts using fixed templates. The same conversion rule is applied to all samples for a given baseline, and no per-image manual editing or prompt optimization is performed. This setting ensures that prompt-dependent baselines are evaluated under a controlled and reproducible protocol.
+
+The prompt templates used for baseline construction are provided in:
+
+```text
+prompts/baseline_prompt_templates.md
+These prompts are used only for reproducing prompt-dependent baseline comparisons. They are not used by ReCAP-Seg during inference.
+```
 ---
 
 ## Data Preparation
@@ -103,54 +132,32 @@ data/
 A typical `attributes.json` file can be organized as:
 
 ```json
-{
+[
   {
-      "filename": "sample_0001.png",
-      "labels": {
-        "attachment_form": [
-          "pedunculated"
-        ],
-        "shape": [
-          "oval"
-        ],
-        "surface_texture": [
-          "smooth"
-        ],
-        "boundary": [
-          "sharp"
-        ],
-        "base_stalk": [
-          "slender_stalk"
-        ],
-        "mucosal_activity": [
-          "normal"
-        ]
-      },
-  {
-      "filename": "sample_0002.png",
-      "labels": {
-        "attachment_form": [
-          "pedunculated"
-        ],
-        "shape": [
-          "irregular"
-        ],
-        "surface_texture": [
-          "granular_nodular",
-          "rough"
-        ],
-        "boundary": [
-          "irregular_margin"
-        ],
-        "base_stalk": [
-          "slender_stalk"
-        ],
-        "mucosal_activity": [
-          "congestion_erythema"
-        ]
-      }
+    "filename": "sample_0001.png",
+    "labels": {
+      "multiplicity": ["single"],
+      "attachment_form": ["pedunculated"],
+      "shape": ["oval"],
+      "surface_texture": ["smooth"],
+      "boundary": ["sharp"],
+      "base_stalk": ["slender_stalk"],
+      "mucosal_activity": ["normal"]
     }
-}
+  },
+  {
+    "filename": "sample_0002.png",
+    "labels": {
+      "multiplicity": ["single"],
+      "attachment_form": ["pedunculated"],
+      "shape": ["irregular"],
+      "surface_texture": ["granular_nodular", "rough"],
+      "boundary": ["irregular_margin"],
+      "base_stalk": ["slender_stalk"],
+      "mucosal_activity": ["congestion_erythema"]
+    }
+  }
+]
 ```
 
 ---
