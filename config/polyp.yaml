@@ -26,7 +26,7 @@ DATA:
   train_label_file: data/polyp/annotations/polyp_train.json
   val_label_file: data/polyp/annotations/polyp_val.json
 
-  image_size: [384, 384]
+  image_size: [256, 256]
 
   augmentation:
     horizontal_flip: 0.5
