@@ -76,16 +76,12 @@ For each task, the Clinical Attribute-induced Prototype Bank (CAPB) is instantia
 
 ## Prompt-dependent Baseline Construction
 
-ReCAP-Seg performs image-only inference and does not require user-provided text prompts, attribute labels, bounding boxes, or point prompts at test time. However, several compared vision-language baselines are prompt-dependent and require textual inputs during inference. To ensure reproducibility and avoid manual prompt tuning, we automatically construct one prompt per sample for each prompt-dependent baseline.
+ReCAP-Seg performs image-only inference and does not require user-provided text prompts, attribute labels, bounding boxes, or point prompts at test time. However, several compared vision-language baselines are prompt-dependent and require textual inputs during inference.
 
-Specifically, the structured attribute annotations generated during offline preprocessing are converted into method-specific textual prompts using fixed templates. The same conversion rule is applied to all samples for a given baseline, and no per-image manual editing or prompt optimization is performed. This setting ensures that prompt-dependent baselines are evaluated under a controlled and reproducible protocol.
+To ensure reproducibility and avoid manual prompt tuning, we automatically construct one prompt per sample for each prompt-dependent baseline. Specifically, the structured attribute annotations generated during offline preprocessing are converted into method-specific textual prompts using fixed templates. The same conversion rule is applied to all samples for a given baseline, and no per-image manual editing or prompt optimization is performed.
 
-The prompt templates used for baseline construction are provided in:
+This setting ensures that prompt-dependent baselines are evaluated under a controlled and reproducible protocol. These prompts are used only for reproducing prompt-dependent baseline comparisons and are not used by ReCAP-Seg during inference.
 
-```text
-prompts/baseline_prompt_templates.md
-These prompts are used only for reproducing prompt-dependent baseline comparisons. They are not used by ReCAP-Seg during inference.
-```
 ---
 
 ## Data Preparation
