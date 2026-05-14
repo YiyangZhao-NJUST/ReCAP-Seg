@@ -21,7 +21,7 @@ Medical image segmentation requires accurate pixel-level delineation. In clinica
 ReCAP-Seg addresses this gap by learning a structured, retrievable semantic prior space during training and reusing it automatically during inference.
 
 <p align="center">
-  <img src="assets/framework.png" width="90%">
+  <img src="Method.pdf" width="90%">
 </p>
 
 The pipeline consists of three core components:
